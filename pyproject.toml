@@ -1,0 +1,35 @@
+[project]
+name = "llm-repl"
+description = "An improved REPL experience for LLM"
+readme = "README.md"
+version = "0.1.0"
+authors = [{name = "Aldo Borrero"}]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License"
+]
+dependencies = [
+  "click",
+  "llm>=0.12",
+  "prompt_toolkit",
+  "pydantic<2.0",
+  "rich",
+  "sqlite_utils",
+]
+
+[project.entry-points.llm]
+repl = "llm_repl"
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+
+[tool.ruff]
+fix = true
+select = ['E', 'F', 'I', 'N']
+ignore = ['E501']
+
+[tool.ruff.isort]
+force-sort-within-sections = true
+no-lines-before = ["local-folder"]
+known-first-party = ["llm_repl"]

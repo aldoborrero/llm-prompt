@@ -150,6 +150,7 @@
       },
       "original": {
         "owner": "aldoborrero",
+        "ref": "v0.2.2",
         "repo": "lib-extras",
         "type": "github"
       }

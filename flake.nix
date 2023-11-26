@@ -31,7 +31,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     lib-extras = {
-      url = "github:aldoborrero/lib-extras";
+      url = "github:aldoborrero/lib-extras/v0.2.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     devour-flake = {

@@ -1,6 +1,6 @@
 # llm-repl
 
-An LLM plugin for an improved Chat experience! Forget about `!multi` and `!end` commands!
+An [LLM](https://github.com/simonw/llm) plugin for an improved Chat experience! Forget about `!multi` and `!end` commands!
 
 ![](./.assets/demo.gif)
 
@@ -8,7 +8,7 @@ An LLM plugin for an improved Chat experience! Forget about `!multi` and `!end` 
 
 This plugin is an improvement over the `llm chat` command in the following areas:
 
-- It introduces support for `rich` markdown to display colorful terminal colors.
+- It introduces support for `rich` markdown to display colorful terminal outputs.
 - It introduces support for `prompt_toolkit` that allows to have a better experience between multi-line and single-line.
 
 It mimics the `llm chat` options and arguments, so it's a direct substitute.

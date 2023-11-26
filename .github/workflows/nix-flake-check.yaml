@@ -1,0 +1,19 @@
+name: 'Nix Flake Check'
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  nix-flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: cachix/install-nix-action@v23
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Nix Flake Check
+        run: nix flake check
+

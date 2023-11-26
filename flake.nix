@@ -89,7 +89,7 @@
         packages = {
           llm-repl = pkgs.python311Packages.buildPythonPackage {
             name = "llm-repl";
-            version = "0.1.0-dev";
+            version = (builtins.fromTOML (builtins.readFile ./pyproject.toml)).project.version;
             pyproject = true;
 
             src = lib.cleanSource ./.;

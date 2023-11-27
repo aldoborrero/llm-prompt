@@ -1,9 +1,11 @@
+from typing import Any, Dict, List, Optional, Tuple
+
 import click
 import llm
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app
 from prompt_toolkit.cursor_shapes import CursorShape
-from prompt_toolkit.formatted_text import to_formatted_text
+from prompt_toolkit.formatted_text import AnyFormattedText, to_formatted_text
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.key_binding.vi_state import InputMode
@@ -45,7 +47,7 @@ def register_commands(cli):
         "--conversation",
         help="Continue the conversation with the given ID.",
     )
-    @click.option("-t", "--template", help="Template to use")
+    @click.option("_template", "-t", "--template", help="Template to use")
     @click.option(
         "-p",
         "--param",
@@ -68,7 +70,7 @@ def register_commands(cli):
         model_id,
         _continue,
         conversation_id,
-        template,
+        _template,
         param,
         options,
         no_stream,
@@ -78,14 +80,18 @@ def register_commands(cli):
         Hold an ongoing conversation with a model on LLM.
         """
         # Retrieve db
-        db = load_database(get_log_db_path())
+        db = load_database(get_logs_db_path())
 
         # Retrieve conversation
         conversation = get_conversation(conversation_id, _continue)
 
-        template_obj, params = get_template_obj(template, system, param)
-        if template_obj is not None and model_id is None and template_obj.model:
-            model_id = template_obj.model
+        # Retrieve template
+        template = get_template(_template, system)
+        if template is not None and model_id is None and template.model:
+            model_id = template.model
+
+        # Pass any template_params
+        template_params = dict(param)
 
         # Resolve the model
         model = get_model(model_id, conversation, key)
@@ -97,122 +103,35 @@ def register_commands(cli):
             conversation.model = model
 
         # Validate options
-        validated_options = validate_options(model, options)
+        model_options = validate_options(model, options)
 
         # Determine streaming capability
         should_stream = model.can_stream and not no_stream
         if not should_stream:
-            validated_options["stream"] = False
+            model_options["stream"] = False
 
-        run_repl_loop(template_obj, params, conversation, system, db, validated_options, model)
+        run_repl_loop(db, model, model_options, conversation, template, template_params, system, should_stream)
 
 
-def run_repl_loop(template_obj, params, conversation, system, db, validated_options, model):
-    console.clear()
-    console.print(
-        Panel(
-            Markdown(
-                f"""
-# Chatting with {model.model_id}
-
-- Press `Ctrl+Q` to end the conversation.
-- Press `Ctrl+Space` to toggle between single-line and multi-line mode.
-- Press `Alt+Enter` to submit your multi-line input, `Enter` to submit single-line input (it supports vi key-bindings).
-
-"""
-            )
-        )
-    )
-
-    history = InMemoryHistory()
-    bindings = KeyBindings()
-
-    multi_line_mode = False  # Start in single-line mode
-
-    @bindings.add("escape", "enter")
-    def handle_alt_enter(event):
-        "Handle Alt+Enter to submit text in multi-line mode."
-        if multi_line_mode:
-            event.current_buffer.validate_and_handle()
-
-    @bindings.add("enter")
-    def handle_enter(event):
-        "Handle Enter key differently based on the current mode."
-        if multi_line_mode:
-            # In multi-line mode, insert a new line without submitting
-            event.current_buffer.insert_text("\n")
-        else:
-            # In single-line mode, submit the text
-            event.current_buffer.validate_and_handle()
-
-    @bindings.add("c-space")
-    def toggle_multi_line_mode(event):
-        "Toggle between single-line and multi-line mode without echoing to the terminal."
-        nonlocal multi_line_mode
-        multi_line_mode = not multi_line_mode
-
-        # Clean the current buffer
-        event.app.current_buffer.reset()
-
-    @bindings.add("c-q")
-    def exit(event):
-        "Bind Ctrl+Q to close the application"
-        event.app.exit()
-
-    def prompt_continuation(width, line_number, is_soft_wrap):
-        return "." * width
-
-    def bottom_toolbar():
-        "Displays a toolbar that shows the current input mode and align commands to the right."
-        input_mode = "Multi-line mode" if multi_line_mode else "Single-line mode"
-
-        vi_mode = get_app().vi_state.input_mode
-        vi_mode_display = "NORMAL" if vi_mode == InputMode.NAVIGATION else "INSERT"
-
-        mode_display = [
-            ("class:toolbar", f"LLM ({input_mode}) "),
-            ("class:toolbar", f"{vi_mode_display}"),
-        ]
-
-        right_part_commands = [
-            ("class:separator", "|"),
-            ("class:key", "Ctrl+Space"),
-            ("class:separator", "|"),
-            ("class:toolbar", " Toggle Mode "),
-            ("class:separator", "|"),
-            ("class:key", "Ctrl+Q"),
-            ("class:separator", "|"),
-            ("class:toolbar", " Quit "),
-        ]
-
-        terminal_width = get_app().output.get_size().columns
-
-        # Calculate the combined length of the displayable text for the right part
-        right_text_length = sum(len(text) for class_name, text in right_part_commands)
-
-        # Calculate leftover space based on terminal size minus the right-side text length
-        space_length = terminal_width - right_text_length - len(mode_display[0][1])
-
-        # If space_length is negative, which means the terminal is too narrow, set it to zero
-        space_length = max(space_length, 0)
-
-        space = ("class:toolbar", " " * space_length)
-
-        return to_formatted_text(mode_display + [space] + right_part_commands)
-
-    session = PromptSession(
-        history=history,
-        key_bindings=bindings,
-        bottom_toolbar=bottom_toolbar,
-        style=style,
-        multiline=True,  # Enable multiline mode in PromptSession.
-    )
-
+def run_repl_loop(
+    db: sqlite_utils.Database,
+    model: llm.Model,
+    model_options: Dict[str, Any],
+    conversation: llm.Conversation,
+    template: Optional[llm.Template],
+    template_params: Dict[str, str],
+    system: Optional[str],
+    should_stream: bool = True,
+) -> None:
+    """
+    Runs the REPL loop for interacting with a language model.
+    """
+    display_intro_message(model)
     while True:
         try:
             user_input = session.prompt(
                 "> ",
-                multiline=multi_line_mode,
+                multiline=True,
                 vi_mode=True,
                 cursor=CursorShape.BLINKING_BLOCK,
                 prompt_continuation=prompt_continuation,
@@ -221,41 +140,47 @@ def run_repl_loop(template_obj, params, conversation, system, db, validated_opti
                 # If we receive None, it means the app is exiting
                 break
 
+            # Clean input
             user_input = user_input.strip()
 
             # Allow for empty lines in multi-line mode
-            if not user_input and multi_line_mode:
+            if not user_input and session.multi_line_mode:
                 continue
 
-            if template_obj:
+            if template:
                 try:
-                    user_input, system = template_obj.evaluate(user_input, params)
+                    user_input, system = template.evaluate(user_input, template_params)
                 except llm.Template.MissingVariables as ex:
                     raise click.ClickException(str(ex))
+
+            # TODO: Handle better error responses and recover (if possible) from them
+            response = conversation.prompt(user_input, system, **model_options)
+            print_response(response=response, stream=should_stream)
+            response.log_to_db(db)
 
             # system prompt only sent for the first message
             system = None
 
-            response = conversation.prompt(user_input, system, **validated_options)
-            print_response(response=response, stream=True)
-            response.log_to_db(db)
         except KeyboardInterrupt:
             continue  # User interrupted with Ctrl-C
 
 
-def get_log_db_path():
-    log_path = llm.cli.logs_db_path()
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    return log_path
+def get_logs_db_path() -> str:
+    logs_path = llm.cli.logs_db_path()
+    logs_path.parent.mkdir(parents=True, exist_ok=True)
+    return logs_path
 
 
-def load_database(log_path):
-    db = sqlite_utils.Database(log_path)
+def load_database(logs_path) -> sqlite_utils.Database:
+    db = sqlite_utils.Database(logs_path)
     llm.migrations.migrate(db)
     return db
 
 
-def get_model(model_id, conversation, key):
+def get_model(model_id: Optional[str], conversation: Optional[llm.Conversation], key: Optional[str]) -> llm.Model:
+    """
+    Retrieves the specified model for use in a conversation.
+    """
     # Figure out which model we are using
     if model_id is None:
         if conversation:
@@ -276,7 +201,10 @@ def get_model(model_id, conversation, key):
     return model
 
 
-def get_conversation(conversation_id, _continue):
+def get_conversation(conversation_id: Optional[str], _continue: int) -> llm.Conversation:
+    """
+    Retrieves an existing conversation or starts a new one based on the given parameters.
+    """
     conversation = None
     if conversation_id or _continue:
         # Load the conversation - loads most recent if no ID provided
@@ -287,17 +215,22 @@ def get_conversation(conversation_id, _continue):
     return conversation
 
 
-def get_template_obj(template, system, param):
-    template_obj = None
-    params = dict(param)
+def get_template(tpl: Optional[str], system: Optional[str]) -> Optional[llm.Template]:
+    """
+    Retrieves a template based on the provided template name, if specified.
+    """
+    template = None
     if template:
         if system:
             raise click.ClickException("Cannot use template and system prompt together")
-        template_obj = llm.cli.load_template(template)
-    return template_obj, params
+        template = llm.cli.load_template(tpl)
+    return template
 
 
-def validate_options(model, options):
+def validate_options(model: llm.Model, options: List[Tuple[str, str]]) -> Dict[str, Any]:
+    """
+    Validates the given options against the model's expected configuration.
+    """
     validated_options = {}
     if options:
         try:
@@ -307,16 +240,159 @@ def validate_options(model, options):
     return validated_options
 
 
-def create_response_panel(content):
+def display_intro_message(model) -> None:
+    console.clear()
+    console.print(
+        Panel(
+            Markdown(
+                f"""
+# Welcome to LLM REPL!
+
+## Chatting with {model.model_id}
+
+- Press `Ctrl+Q` to end the conversation.
+- Press `Ctrl+Space` to toggle between single-line and multi-line mode.
+- Press `Alt+Enter` to submit your multi-line input, `Enter` to submit single-line input.
+"""
+            )
+        )
+    )
+
+
+def bottom_toolbar() -> AnyFormattedText:
+    """
+    Creates and returns the bottom toolbar content for the prompt session.
+    """
+    app = get_app()
+
+    input_mode = "Multi-line mode" if session.multi_line_mode else "Single-line mode"
+
+    vi_mode = app.vi_state.input_mode
+    vi_mode_display = "NORMAL" if vi_mode == InputMode.NAVIGATION else "INSERT"
+
+    mode_display = [
+        ("class:toolbar", f"LLM ({input_mode}) "),
+        ("class:toolbar", f"{vi_mode_display}"),
+    ]
+
+    right_part_commands = [
+        ("class:separator", "|"),
+        ("class:key", "Ctrl+Space"),
+        ("class:separator", "|"),
+        ("class:toolbar", " Toggle Mode "),
+        ("class:separator", "|"),
+        ("class:key", "Ctrl+Q"),
+        ("class:separator", "|"),
+        ("class:toolbar", " Quit "),
+    ]
+
+    terminal_width = app.output.get_size().columns
+    mode_display_length = sum(len(text) for _, text in mode_display)
+    right_text_length = sum(len(text) for _, text in right_part_commands)
+
+    # Calculate space length considering the entire length of mode_display
+    space_length = terminal_width - right_text_length - mode_display_length
+    space_length = max(space_length, 0)  # Ensure it's not negative
+
+    space = ("class:toolbar", " " * space_length)
+
+    return to_formatted_text(mode_display + [space] + right_part_commands)
+
+
+def setup_prompt_session() -> PromptSession:
+    """
+    Sets up and returns a new prompt session for user input.
+    """
+    history = InMemoryHistory()
+    key_bindings = create_key_bindings()
+
+    session = MultiLinePromptSession(
+        history=history, key_bindings=key_bindings, bottom_toolbar=bottom_toolbar, style=style, multiline=True
+    )
+
+    return session
+
+
+def create_key_bindings() -> KeyBindings:
+    """
+    Create custom key bindings for the prompt session.
+    """
+    kb = KeyBindings()
+
+    @kb.add("escape", "enter")
+    def handle_alt_enter(event):
+        """
+        Handle Alt+Enter to submit text in multi-line mode.
+        """
+        if session.multi_line_mode:
+            event.current_buffer.validate_and_handle()
+
+    @kb.add("enter")
+    def handle_enter(event):
+        """
+        Handle Enter key to submit text directly in single-line mode. Otherwise a new line is inserted in multi-line mode.
+        """
+        if session.multi_line_mode:
+            # In multi-line mode, insert a new line without submitting
+            event.current_buffer.insert_text("\n")
+        else:
+            # In single-line mode, submit the text
+            event.current_buffer.validate_and_handle()
+
+    @kb.add("c-space")
+    def toggle_multi_line_mode(event):
+        """
+        Toggle between single-line and multi-line mode without echoing to the terminal.
+        """
+        session.toggle_multi_line_mode()
+        event.app.current_buffer.reset()
+
+    @kb.add("c-q")
+    def exit(event):
+        """
+        Handle Ctrl+Q to close the application.
+        """
+        event.app.exit()
+
+    return kb
+
+
+def prompt_continuation(width: int, line_number: int, is_soft_wrap: bool) -> str:
+    """
+    Generates the continuation prompt string for the multi-line input messages.
+    """
+    return "." * width
+
+
+def create_response_panel(content: str) -> Panel:
+    """
+    Creates and returns a panel for displaying a response in a rich text format.
+    """
     return Padding(Panel(content, title="LLM", title_align="left"), (1, 1))
 
 
-def print_response(response: llm.Response, stream: bool = True):
+def print_response(response: llm.Response, stream: bool = True) -> None:
+    """
+    Prints the response from the language model to the console.
+    """
     if stream:
         md = ""
-        with Live(Markdown(""), console=console, auto_refresh=20) as live:
+        with Live(Markdown(md), console=console, auto_refresh=20) as live:
             for chunk in response:
                 md += chunk
                 live.update(create_response_panel(Markdown(md)))
     else:
         console.print(create_response_panel(Markdown(response.text())))
+
+
+class MultiLinePromptSession(PromptSession):
+    def __init__(self, *args, **kwargs):
+        self.multi_line_mode = False
+        super().__init__(*args, **kwargs)
+
+    def toggle_multi_line_mode(self):
+        self.multi_line_mode = not self.multi_line_mode
+
+
+# TODO: Remove this global variable
+session = setup_prompt_session()

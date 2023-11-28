@@ -105,7 +105,6 @@
               pygments
               rich
               sqlite-utils
-              textual
             ];
           };
 

@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import click
 import llm
@@ -116,10 +117,10 @@ def register_commands(cli):
 def run_repl_loop(
     db: sqlite_utils.Database,
     model: llm.Model,
-    model_options: Dict[str, Any],
+    model_options: dict[str, Any],
     conversation: llm.Conversation,
     template: Optional[llm.Template],
-    template_params: Dict[str, str],
+    template_params: dict[str, str],
     system: Optional[str],
     should_stream: bool = True,
 ) -> None:
@@ -227,7 +228,7 @@ def get_template(tpl: Optional[str], system: Optional[str]) -> Optional[llm.Temp
     return template
 
 
-def validate_options(model: llm.Model, options: List[Tuple[str, str]]) -> Dict[str, Any]:
+def validate_options(model: llm.Model, options: list[tuple[str, str]]) -> dict[str, Any]:
     """
     Validates the given options against the model's expected configuration.
     """

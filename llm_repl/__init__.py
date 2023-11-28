@@ -1,10 +1,10 @@
-from typing import Any, Dict, List, Optional, Tuple
 from typing import Any, Optional
 
 import click
 import llm
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.formatted_text import AnyFormattedText, to_formatted_text
 from prompt_toolkit.history import InMemoryHistory
@@ -23,8 +23,10 @@ console = Console()
 
 style = Style.from_dict(
     {
-        "toolbar": "bg:#333333 #aaaaaa",
-        "key": "bold",
+        "toolbar": "bg:#FFFDF5 fg:#353533",
+        "toolbar-insert-mode": "bold bg:#FFFDF5 fg:#FF5F87",
+        "toolbar-normal-mode": "bold bg:#FFFDF5 fg:#00a078",
+        "toolbar-shortcut": "bold fg:#6124DF bg:#FFFDF5",
     }
 )
 
@@ -271,25 +273,23 @@ def bottom_toolbar() -> AnyFormattedText:
     vi_mode = app.vi_state.input_mode
     vi_mode_display = "NORMAL" if vi_mode == InputMode.NAVIGATION else "INSERT"
 
-    mode_display = [
-        ("class:toolbar", f"LLM ({input_mode}) "),
-        ("class:toolbar", f"{vi_mode_display}"),
+    left_part = [
+        ("class:toolbar", "LLM "),
+        ("class:toolbar", f"({input_mode})"),
+        ("class:toolbar", " "),
+        (f"class:toolbar-{vi_mode_display.lower()}-mode", f" {vi_mode_display} "),
     ]
 
-    right_part_commands = [
-        ("class:separator", "|"),
-        ("class:key", "Ctrl+Space"),
-        ("class:separator", "|"),
+    right_part = [
+        ("class:toolbar-shortcut", " Ctrl+Space "),
         ("class:toolbar", " Toggle Mode "),
-        ("class:separator", "|"),
-        ("class:key", "Ctrl+Q"),
-        ("class:separator", "|"),
+        ("class:toolbar-shortcut", " Ctrl+Q "),
         ("class:toolbar", " Quit "),
     ]
 
     terminal_width = app.output.get_size().columns
-    mode_display_length = sum(len(text) for _, text in mode_display)
-    right_text_length = sum(len(text) for _, text in right_part_commands)
+    mode_display_length = sum(len(text) for _, text in left_part)
+    right_text_length = sum(len(text) for _, text in right_part)
 
     # Calculate space length considering the entire length of mode_display
     space_length = terminal_width - right_text_length - mode_display_length
@@ -297,18 +297,20 @@ def bottom_toolbar() -> AnyFormattedText:
 
     space = ("class:toolbar", " " * space_length)
 
-    return to_formatted_text(mode_display + [space] + right_part_commands)
+    return to_formatted_text(left_part + [space] + right_part)
 
 
-def setup_prompt_session() -> PromptSession:
+def create_prompt_session() -> PromptSession:
     """
     Sets up and returns a new prompt session for user input.
     """
-    history = InMemoryHistory()
-    key_bindings = create_key_bindings()
-
     session = MultiLinePromptSession(
-        history=history, key_bindings=key_bindings, bottom_toolbar=bottom_toolbar, style=style, multiline=True
+        auto_suggest=AutoSuggestFromHistory(),
+        history=InMemoryHistory(),
+        key_bindings=create_key_bindings(),
+        bottom_toolbar=bottom_toolbar,
+        style=style,
+        multiline=True,
     )
 
     return session
@@ -396,4 +398,4 @@ class MultiLinePromptSession(PromptSession):
 
 
 # TODO: Remove this global variable
-session = setup_prompt_session()
+session = create_prompt_session()

@@ -1,6 +1,11 @@
 # llm-repl
 
-An [LLM](https://github.com/simonw/llm) plugin for an improved Chat experience! Forget about `!multi` and `!end` commands!
+[![PyPI](https://img.shields.io/pypi/v/llm-repl.svg)](https://pypi.org/project/llm-repl/)
+[![Changelog](https://img.shields.io/github/v/release/aldoborrero/llm-repl?include_prereleases&label=changelog)](https://github.com/aldoborrero/llm-repl/releases)
+[![Tests](https://github.com/aldoborrero/llm-repl/workflows/Test/badge.svg)](https://github.com/aldoborrero/llm-repl/actions?query=workflow%3ATest)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/aldoborrero/llm-repl/blob/main/LICENSE)
+
+An [LLM](https://github.com/simonw/llm) plugin for an improved chat experience! Forget about `!multi` and `!end` commands!
 
 ![](./.assets/demo.gif)
 
@@ -8,8 +13,8 @@ An [LLM](https://github.com/simonw/llm) plugin for an improved Chat experience! 
 
 This plugin is an improvement over the `llm chat` command in the following areas:
 
-- It introduces support for `rich` markdown to display colorful terminal outputs.
-- It introduces support for `prompt_toolkit` that allows to have a better experience between multi-line and single-line.
+- It introduces support for [rich](https://github.com/Textualize/rich) to display colorful terminal outputs.
+- It introduces support for [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/) that allows to have a better experience between multi-line and single-line (yes, you'll have access to `vim` keystyle bindings).
 
 It mimics the `llm chat` options and arguments, so it's a direct substitute.
 

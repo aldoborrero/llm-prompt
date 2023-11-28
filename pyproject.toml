@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "llm-repl"
 description = "An improved REPL experience for LLM"
@@ -16,6 +20,9 @@ dependencies = [
   "rich",
   "sqlite_utils",
 ]
+
+[project.optional-dependencies]
+test = ["pytest"]
 
 [project.entry-points.llm]
 repl = "llm_repl"

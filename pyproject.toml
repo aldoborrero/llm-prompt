@@ -3,10 +3,10 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "llm-repl"
-description = "An improved REPL experience for LLM"
+name = "llm-prompt"
+description = "An improved chat experience for LLM"
 readme = "README.md"
-version = "0.1.0"
+version = "0.1.2"
 authors = [{name = "Aldo Borrero"}]
 license = {text = "Apache-2.0"}
 classifiers = [
@@ -25,7 +25,7 @@ dependencies = [
 test = ["pytest"]
 
 [project.entry-points.llm]
-repl = "llm_repl"
+prompt = "llm_prompt"
 
 [tool.black]
 line-length = 120
@@ -39,4 +39,4 @@ ignore = ['E501']
 [tool.ruff.isort]
 force-sort-within-sections = true
 no-lines-before = ["local-folder"]
-known-first-party = ["llm_repl"]
+known-first-party = ["llm_prompt"]

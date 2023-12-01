@@ -33,7 +33,7 @@ style = Style.from_dict(
 
 @llm.hookimpl
 def register_commands(cli):
-    @cli.command(name="repl")
+    @cli.command(name="prompt")
     @click.option("-s", "--system", help="System prompt to use")
     @click.option("model_id", "-m", "--model", help="Model to use")
     @click.option(
@@ -68,7 +68,7 @@ def register_commands(cli):
     )
     @click.option("--no-stream", is_flag=True, help="Do not stream output")
     @click.option("--key", help="API key to use")
-    def repl(
+    def prompt(
         system,
         model_id,
         _continue,
@@ -113,10 +113,10 @@ def register_commands(cli):
         if not should_stream:
             model_options["stream"] = False
 
-        run_repl_loop(db, model, model_options, conversation, template, template_params, system, should_stream)
+        run_prompt_loop(db, model, model_options, conversation, template, template_params, system, should_stream)
 
 
-def run_repl_loop(
+def run_prompt_loop(
     db: sqlite_utils.Database,
     model: llm.Model,
     model_options: dict[str, Any],
@@ -249,7 +249,7 @@ def display_intro_message(model) -> None:
         Panel(
             Markdown(
                 f"""
-# Welcome to LLM REPL!
+# Welcome to LLM Prompt!
 
 ## Chatting with {model.model_id}
 

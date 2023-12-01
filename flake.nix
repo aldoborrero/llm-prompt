@@ -1,5 +1,5 @@
 {
-  description = "llm-repl / An improved chat experience for LLM";
+  description = "llm-prompt / An improved chat experience for LLM";
 
   nixConfig = {
     extra-substituters = [
@@ -87,7 +87,7 @@
 
         # packages
         packages = {
-          llm-repl = pkgs.python311Packages.buildPythonPackage {
+          llm-prompt = pkgs.python311Packages.buildPythonPackage {
             name = "llm-repl";
             version = (builtins.fromTOML (builtins.readFile ./pyproject.toml)).project.version;
             pyproject = true;
@@ -118,9 +118,9 @@
 
         # devshells
         devshells.default = {
-          name = "llm-repl";
+          name = "llm-prompt";
           packages = with pkgs; [
-            (llm.withPlugins [self'.packages.llm-repl])
+            (llm.withPlugins [self'.packages.llm-prompt])
             python311
             poetry
             vhs

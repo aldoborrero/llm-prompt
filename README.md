@@ -1,15 +1,21 @@
-# llm-repl
+# llm-prompt
 
-[![PyPI](https://img.shields.io/pypi/v/llm-repl.svg)](https://pypi.org/project/llm-repl/)
-[![Changelog](https://img.shields.io/github/v/release/aldoborrero/llm-repl?include_prereleases&label=changelog)](https://github.com/aldoborrero/llm-repl/releases)
-[![Tests](https://github.com/aldoborrero/llm-repl/workflows/Test/badge.svg)](https://github.com/aldoborrero/llm-repl/actions?query=workflow%3ATest)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/aldoborrero/llm-repl/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/llm-prompt.svg)](https://pypi.org/project/llm-prompt/)
+[![Changelog](https://img.shields.io/github/v/release/aldoborrero/llm-prompt?include_prereleases&label=changelog)](https://github.com/aldoborrero/llm-prompt/releases)
+[![Tests](https://github.com/aldoborrero/llm-prompt/workflows/Test/badge.svg)](https://github.com/aldoborrero/llm-prompt/actions?query=workflow%3ATest)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/aldoborrero/llm-prompt/blob/main/LICENSE)
 
 An [LLM](https://github.com/simonw/llm) plugin for an improved chat experience! Forget about `!multi` and `!end` commands!
 
 ![](./.assets/demo.gif)
 
 ## Introduction
+
+Just invoke it with:
+
+```console
+llm prompt
+```
 
 This plugin is an improvement over the `llm chat` command in the following areas:
 
@@ -25,7 +31,7 @@ It mimics the `llm chat` options and arguments, so it's a direct substitute.
 Install this plugin in the same environment as LLM:
 
 ```console
-llm install llm-repl
+llm install llm-prompt
 ```
 
 ### Nix
@@ -38,8 +44,8 @@ Add the following to your `flake.nix`:
 {
     inputs = {
         nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-        llm-repl = {
-            url = "github:aldoborrero/llm-repl";
+        llm-prompt = {
+            url = "github:aldoborrero/llm-prompt";
             inputs.nixpkgs.follows = "nixpkgs";
         };
     };
@@ -52,7 +58,7 @@ And install it in your LLM instance:
 {pkgs, inputs, ... } : {
     system.environmentPackages = with pkgs; [
         llm.withPlugins([
-            inputs.llm-repl.packages.${system}.llm-repl
+            inputs.llm-prompt.packages.${system}.llm-prompt
         ])
     ];
 }
